@@ -3,6 +3,7 @@ package sockets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
@@ -14,7 +15,7 @@ public class Client {
 	private String nickname;
 
 	public static void main(String[] args) throws UnknownHostException, IOException {
-		new Client("127.0.0.1", 12345).run();
+		new Client("37.150.107.157", 12345).run();
 	}
 
 	public Client(String host, int port) {
@@ -25,7 +26,9 @@ public class Client {
 	public void run() throws UnknownHostException, IOException {
 		// connect client to server
 		Socket client = new Socket(host, port);
-		System.out.println("Client successfully connected to server!");
+		PrintWriter writer = new PrintWriter(client.getOutputStream(), true);
+		writer.println("Client successfully connected to server!");
+		writer.flush();
 
 		// create a new thread for server messages handling
 		new Thread(new ReceivedMessagesHandler(client.getInputStream())).start();
@@ -36,13 +39,15 @@ public class Client {
 		nickname = sc.nextLine();
 
 		// read messages from keyboard and send to server
-		System.out.println("Send messages: ");
-		PrintStream output = new PrintStream(client.getOutputStream());
-		while (sc.hasNextLine()) {
-			output.println(nickname + ": " + sc.nextLine());
+		while(true) {
+			System.out.println("Send messages: ");
+			String msg = sc.nextLine();
+			writer.println(nickname + ": " + msg);
+			if(msg.equals("stop")) {
+				break;
+			}
 		}
-		
-		output.close();
+
 		sc.close();
 		client.close();
 	}

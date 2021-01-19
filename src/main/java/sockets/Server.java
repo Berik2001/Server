@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+// Server for Multi-client chat
 public class Server {
 
 	private int port;
@@ -25,11 +26,7 @@ public class Server {
 	}
 
 	public void run() throws IOException {
-		server = new ServerSocket(port) {
-			protected void finalize() throws IOException {
-				this.close();
-			}
-		};
+		this.server = new ServerSocket(port);
 		System.out.println("Port 12345 is now open.");
 
 		while (true) {
@@ -41,13 +38,14 @@ public class Server {
 			this.clients.add(new PrintStream(client.getOutputStream()));
 			
 			// create a new thread for client handling
-			new Thread(new ClientHandler(this, client.getInputStream())).start();
+			new Thread(new ClientHandler(this, client)).start();
 		}
 	}
 
 	void broadcastMessages(String msg) {
 		for (PrintStream client : this.clients) {
 			client.println(msg);
+
 		}
 	}
 }
@@ -55,9 +53,9 @@ public class Server {
 class ClientHandler implements Runnable {
 
 	private Server server;
-	private InputStream client;
+	private Socket client;
 
-	public ClientHandler(Server server, InputStream client) {
+	public ClientHandler(Server server, Socket client) {
 		this.server = server;
 		this.client = client;
 	}
@@ -67,11 +65,17 @@ class ClientHandler implements Runnable {
 		String message;
 		
 		// when there is a new message, broadcast to all
-		Scanner sc = new Scanner(this.client);
-		while (sc.hasNextLine()) {
-			message = sc.nextLine();
-			server.broadcastMessages(message);
-		}
+        Scanner sc = null;
+        try {
+            sc = new Scanner(this.client.getInputStream());
+            while (sc.hasNextLine()) {
+                message = sc.nextLine();
+				System.out.println(message);
+                server.broadcastMessages(message);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 		sc.close();
 	}
 }
